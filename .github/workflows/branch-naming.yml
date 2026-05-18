@@ -11,12 +11,19 @@ jobs:
       - name: Validate branch name
         shell: bash
         run: |
-          branch="${{ github.head_ref }}"
+          source_branch="${{ github.head_ref }}"
+          target_branch="${{ github.base_ref }}"
           pattern='^(feat/phase-[1-3]/week-([1-9]|1[0-2])-[a-z0-9]+(-[a-z0-9]+)*|hotfix/[a-z0-9-]+|chore/governance-[a-z0-9-]+|docs/[a-z0-9-]+)$'
 
-          echo "Branch: ${branch}"
+          echo "Source: ${source_branch}"
+          echo "Target: ${target_branch}"
 
-          if [[ ! "${branch}" =~ ${pattern} ]]; then
-            echo "::error::Branch name must match one of: feat/phase-N/week-N-short-name, hotfix/name, chore/governance-name, docs/name"
+          if [[ "${source_branch}" == "develop" && "${target_branch}" == "main" ]]; then
+            echo "Release PR: develop -> main. Source name check bypassed."
+            exit 0
+          fi
+
+          if [[ ! "${source_branch}" =~ ${pattern} ]]; then
+            echo "::error::Branch name must match one of: feat/phase-N/week-N-short-name, hotfix/name, chore/governance-name, docs/name. Release PRs use develop -> main."
             exit 1
           fi
