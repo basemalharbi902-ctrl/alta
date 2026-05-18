@@ -1,0 +1,11 @@
+* @basemalharbi902-ctrl
+
+/database/migrations/ @basemalharbi902-ctrl
+/app/Policies/ @basemalharbi902-ctrl
+/docs/signoffs/ @basemalharbi902-ctrl
+/docs/signoffs/transcripts/ @basemalharbi902-ctrl
+/.github/ @basemalharbi902-ctrl
+/docs/00-governance/ @basemalharbi902-ctrl
+/docs/01-phases/ @basemalharbi902-ctrl
+/docs/conflicts/ @basemalharbi902-ctrl
+/docs/incidents/ @basemalharbi902-ctrl

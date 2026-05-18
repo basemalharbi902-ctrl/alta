@@ -1,0 +1,134 @@
+name: codex-gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  codex-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate Codex sign-off
+        shell: bash
+        run: |
+          branch="${{ github.head_ref }}"
+          owner_email="basem902@gmail.com"
+
+          changed_files="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD || git diff --name-only HEAD~1 HEAD)"
+          if ! echo "${changed_files}" | grep -qx "CHANGELOG.md"; then
+            echo "::error::CHANGELOG.md must be updated in every PR"
+            exit 1
+          fi
+
+          if [[ ! "${branch}" =~ ^feat/phase-([1-3])/week-([0-9]+)- ]]; then
+            echo "Non-feature governance/docs/hotfix branch. Codex feature sign-off gate is not required."
+            exit 0
+          fi
+
+          phase="${BASH_REMATCH[1]}"
+          week="${BASH_REMATCH[2]}"
+          signoff="docs/signoffs/phase-${phase}-week-${week}-codex-signoff.md"
+
+          echo "Expected sign-off: ${signoff}"
+
+          if [[ ! -f "${signoff}" ]]; then
+            echo "::error::Missing Codex sign-off ${signoff}"
+            exit 1
+          fi
+
+          non_owner_signoff="$(git log --pretty=format:'%ae' -- "${signoff}" | grep -v "^${owner_email}$" || true)"
+          if [[ -n "${non_owner_signoff}" ]]; then
+            echo "::error::Sign-off file has commits from non-owner authors:"
+            echo "${non_owner_signoff}"
+            exit 1
+          fi
+
+          if ! grep -Eq '^- النتيجة النهائية: 100/100$' "${signoff}"; then
+            echo "::error::Sign-off must contain exact field line: - النتيجة النهائية: 100/100"
+            exit 1
+          fi
+
+          if ! grep -Eq '^- \[x\] Approved -' "${signoff}"; then
+            echo "::error::Sign-off must mark Approved as an actual checked decision line"
+            exit 1
+          fi
+
+          transcript_path="$(grep -E '^- ملف transcript:' "${signoff}" | sed 's/^- ملف transcript:[[:space:]]*//')"
+          transcript_hash="$(grep -E '^- SHA256 transcript:' "${signoff}" | sed 's/^- SHA256 transcript:[[:space:]]*//')"
+
+          if [[ -z "${transcript_path}" || -z "${transcript_hash}" ]]; then
+            echo "::error::Sign-off must include transcript path and SHA256 hash"
+            exit 1
+          fi
+
+          if [[ ! -f "${transcript_path}" ]]; then
+            echo "::error::Missing transcript file ${transcript_path}"
+            exit 1
+          fi
+
+          non_owner_transcript="$(git log --pretty=format:'%ae' -- "${transcript_path}" | grep -v "^${owner_email}$" || true)"
+          if [[ -n "${non_owner_transcript}" ]]; then
+            echo "::error::Transcript file has commits from non-owner authors:"
+            echo "${non_owner_transcript}"
+            exit 1
+          fi
+
+          actual_hash="$(sha256sum "${transcript_path}" | awk '{print $1}')"
+
+          if [[ "${actual_hash}" != "${transcript_hash}" ]]; then
+            echo "::error::Transcript SHA256 mismatch"
+            echo "Expected: ${transcript_hash}"
+            echo "Actual:   ${actual_hash}"
+            exit 1
+          fi
+
+          require_field() {
+            local pattern="$1"
+            local message="$2"
+            if ! grep -Eq "${pattern}" "${transcript_path}"; then
+              echo "::error::${message}"
+              exit 1
+            fi
+          }
+
+          require_field '^Session-ID: .+' "Transcript must include Session-ID"
+          require_field '^Codex-Version: .+' "Transcript must include Codex-Version"
+          require_field '^Reviewer-Channel: owner-only$' "Transcript reviewer channel must be owner-only"
+          require_field '^Timestamp-UTC: .+' "Transcript must include Timestamp-UTC"
+          require_field "^Target-Branch: ${branch}$" "Transcript Target-Branch must match current branch"
+          require_field '^Target-Commit-SHA: [0-9a-f]{40}$' "Transcript must include a 40-char Target-Commit-SHA"
+          require_field "^PR-Number: ${{ github.event.pull_request.number }}$" "Transcript PR-Number must match this PR"
+          require_field '^Final-Score: 100/100$' "Transcript Final-Score must be 100/100"
+          require_field '^Decision: APPROVED$' "Transcript Decision must be APPROVED"
+          require_field '^--- CODEX-END ---$' "Transcript must include CODEX-END marker"
+
+          timestamp="$(grep -E '^Timestamp-UTC: ' "${transcript_path}" | sed 's/^Timestamp-UTC:[[:space:]]*//')"
+          timestamp_epoch="$(date -u -d "${timestamp}" +%s 2>/dev/null || true)"
+          now_epoch="$(date -u +%s)"
+          min_epoch="$((now_epoch - 14 * 24 * 60 * 60))"
+
+          if [[ -z "${timestamp_epoch}" ]]; then
+            echo "::error::Timestamp-UTC must be valid ISO-8601 or date-compatible UTC"
+            exit 1
+          fi
+
+          if (( timestamp_epoch < min_epoch || timestamp_epoch > now_epoch + 3600 )); then
+            echo "::error::Timestamp-UTC must be within the last 14 days and not more than one hour in the future"
+            exit 1
+          fi
+
+          target_commit="$(grep -E '^Target-Commit-SHA: ' "${transcript_path}" | sed 's/^Target-Commit-SHA:[[:space:]]*//')"
+
+          if ! git cat-file -e "${target_commit}^{commit}" 2>/dev/null; then
+            echo "::error::Transcript references commit ${target_commit}, but it does not exist"
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor "${target_commit}" HEAD; then
+            echo "::error::Transcript references commit ${target_commit} which is not in this branch"
+            exit 1
+          fi
