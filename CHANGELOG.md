@@ -10,3 +10,4 @@
 - تشديد codex-gate بفحص مالك ملفات Sign-off وTranscript وتحديث CHANGELOG في كل PR.
 - تشديد codex-gate لفحص كل معدلي ملفات Sign-off وTranscript، وإضافة سكريبت `scripts/update-signoff.sh`.
 - تعديل مسار التخطيط: المبرمج يعد الخطة كاملة مع Claude، مالك المشروع يراجعها قبل Codex ويصدر إذناً صريحاً قبل بدء التطوير وقبل الدمج.
+- إصلاح branch-naming.yml للسماح بـrelease PRs من develop إلى main.

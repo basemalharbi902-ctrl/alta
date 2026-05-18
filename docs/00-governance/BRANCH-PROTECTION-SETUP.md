@@ -37,6 +37,12 @@
 - `chore/governance-name`: تحديث حوكمة ويحتاج مراجعة مالك المشروع وCHANGELOG.
 - `docs/name`: تحديث وثائق ويحتاج مراجعة مالك المشروع وCHANGELOG.
 
+## Release PRs
+
+- المسار الوحيد المسموح به للدمج إلى `main` بعد bootstrap هو: PR من `develop` إلى `main`.
+- `branch-naming` يتجاوز فحص اسم المصدر فقط عندما يكون المصدر `develop` والهدف `main`.
+- باقي الفحوصات (`codex-gate`, `required-files`, CHANGELOG, CODEOWNERS) تطبق كاملة.
+
 ## خطوات أول إعداد
 
 1. أنشئ `main`.
