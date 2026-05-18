@@ -36,6 +36,8 @@
 - `hotfix/name`: إصلاح طارئ ويحتاج مراجعة مالك المشروع وCHANGELOG.
 - `chore/governance-name`: تحديث حوكمة ويحتاج مراجعة مالك المشروع وCHANGELOG.
 - `docs/name`: تحديث وثائق ويحتاج مراجعة مالك المشروع وCHANGELOG.
+- `release/name`: تجهيز إصدار ويحتاج مراجعة مالك المشروع وCHANGELOG.
+- `develop -> main`: مسار إصدار رسمي مسموح به فقط عندما يكون base branch هو `main`.
 
 ## Release PRs
 
