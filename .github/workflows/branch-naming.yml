@@ -13,7 +13,7 @@ jobs:
         run: |
           source_branch="${{ github.head_ref }}"
           target_branch="${{ github.base_ref }}"
-          pattern='^(feat/phase-[1-3]/week-([1-9]|1[0-2])-[a-z0-9]+(-[a-z0-9]+)*|hotfix/[a-z0-9-]+|chore/governance-[a-z0-9-]+|docs/[a-z0-9-]+)$'
+          pattern='^(feat/phase-[1-3]/week-([1-9]|1[0-2])-[a-z0-9]+(-[a-z0-9]+)*|hotfix/[a-z0-9-]+|chore/governance-[a-z0-9-]+|docs/[a-z0-9-]+|release/[a-z0-9.-]+)$'
 
           echo "Source: ${source_branch}"
           echo "Target: ${target_branch}"
@@ -24,6 +24,6 @@ jobs:
           fi
 
           if [[ ! "${source_branch}" =~ ${pattern} ]]; then
-            echo "::error::Branch name must match one of: feat/phase-N/week-N-short-name, hotfix/name, chore/governance-name, docs/name. Release PRs use develop -> main."
+            echo "::error::Branch name must match one of: feat/phase-N/week-N-short-name, hotfix/name, chore/governance-name, docs/name, release/name. Release PRs may also use develop -> main."
             exit 1
           fi
